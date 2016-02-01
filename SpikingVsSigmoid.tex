@@ -1,0 +1,232 @@
+\documentclass[conference, compsoc]{IEEEtran}
+
+
+\usepackage{cite}
+
+
+\usepackage{amsmath}
+\usepackage{fixltx2e}
+\usepackage{stfloats}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{pbox}
+\usepackage{multirow}
+\usepackage{rotating}
+
+
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+
+\begin{document}
+
+\title{Perspectives of applied Spiking Neural Networks from the hardware side.}
+
+\author{\IEEEauthorblockN{Sergei Dytckov}
+\IEEEauthorblockA{University of Turku\\
+	Finland}
+\and
+\IEEEauthorblockN{ Masoud Daneshtalab}
+\IEEEauthorblockA{Royal Institute of Technology\\
+	Sweden}
+}
+
+\maketitle
+
+
+\begin{abstract}
+while classical neural networks take a position of a leading method in the machine learning community, spiking neuromorphic systems bring attention and large projects in neuroscience. Spiking neural networks were shown to be able to substitute networks of classical neurons in applied tasks. This work explores recent hardware designs focusing on perspective applications (like convolutional neural networks) for both neuron types from the energy efficiency side to analyse whether there is a possibility for spiking neuromorphic hardware to grow up for a wider use. Our comparison shows that spiking hardware is at least on the same level of energy efficiency or even higher than non-spiking on a level of basic operations. However, on a system level, spiking systems are outmatched and consume much more energy due to inefficient data representation with a long series of spikes. If spike-driven applications, minimizing an amount of spikes, are developed, spiking neural systems may reach the energy efficiency level of classical neural systems. However, in the near future, both type of neuromorphic systems may benefit from emerging memory technologies, minimizing the energy consumption of computation and memory for both neuron types. That would make infrastructure and data transfer energy dominant on the system level. We expect that spiking neurons have some benefits, which would allow achieving better energy results. Still the problem of an amount of spikes will still be the major bottleneck for spiking hardware systems.
+\end{abstract}
+
+\IEEEpeerreviewmaketitle
+
+
+
+\section{Introduction}
+Neural networks have gained quite a lot of attention last decades. From one side, there are large national and international projects such as Blue Brain, Human Brain project, the BRAIN initiative and a number of separate research groups bring up the advances in spiking neural networks (SNN). From another side, classical neurons with sigmoidal activation function show the possibility to outperform other machine learning algorithms. They are found to be very efficient for text, audio, and image recognition tasks \cite{Overview}. The Deep Neural Network (DNN) architectures as Convolutional Neural Networks (CNN) and Deep Belief Networks are extensively researched and already widely used in practice.
+
+The main area of research on spiking neurons is in neuroscience (e.g. Brain modelling). Applied architectures for spiking neurons are much less explored, but show promising results. In simple cases, as the classification of the IRIS dataset \cite{Johnston2005} or prediction \cite{Johnson2009833}, SNN show accuracy comparable or even better than classical neurons. Adapting CNN to spiking neurons shows slightly worse accuracy on complex image recognition tasks \cite{SNN_DCNN_object_rec,threshold_balancing}.
+
+Low energy consumption is widely believed to be an inherent feature of SNN. Spiking neuron, implemented using physical characteristics of transistors working in subthreshold regime, show the promising energy result of a few $ pJ $ per spike \cite{Indiveri,Phong,HardwareOrAnalog,Wijekoon_compact_silicon_circuit,Energy-Efficient-Neuron}, potentially making neuromorphic hardware (VLSI of silicon spiking neurons) suitable for an energy efficient computing of applications, where accuracy is not critical. When a new platform is introduced, a comparison is typically made with either a general purpose CPU or previous works on the same type of neuron. To our knowledge, there are only two works have compared spiking and non-spiking systems. Another work compares spiking and non-spiking digital VLSI ANN implementations with an application to MNIST database classification \cite{Temam:comparison}. But the reported values are controversial. For energy comparison, 500 cycles of SNN are considered, resulting in more than x3000 times more energy consumption than classical ANN. That is equal to x7 larger energy consumption per cycle for SNN. Although another test on a small dummy network shows that SNN is x2 times more energy efficient per cycle. Despite this, the conclusion is that SNN are not competitive to classical ANN due to a large simulation time although SNN cost twice smaller area. FPGA implementations are explored in \cite{Johnston2005}. But only area (FPGA slice) utilisation is considered, which is slightly lower for the simple spiking neuron model. In this paper, we explore the hardware realization of spiking neurons and networks from both digital and analog implementation and compare them with classical neural systems. The key objective is in the energy comparison, while exploring the possibility of neuromorphic hardware to be used in practical applications.
+
+\section{Background on neural networks}
+On the level of individual processing blocks, a classical neuron receives $ N $ pairs of inputs $ x $ and weights $ w $ and performs $ N $ multiplications on them, then the weighted inputs are summed with $ N-1 $ additions and send to the sigmoidal-like kernel, equations (1,2). The whole operation can be easily pipelined, time multiplexed and partially computed. Sigmoidal kernel is typically implemented as a LookUp Table (LUT).
+\begin{equation} \label{eq:1}
+y=F(\sum_{i}^{N}\omega_{i}x_{i})
+\end{equation}
+\begin{equation} \label{eq:2}
+F(t)=(\frac{1}{1+e^{i}})
+\end{equation}
+
+Spiking neurons are very similar to classical neurons from the architectural point of view. A neuron has a fixed amount of weighted inputs - synapses, and the kernel performs some operations on them. The activation function is replaced with a more complex model, which simulates the behavior of neuron’s membrane potential in time and its reaction to input - spikes. Spiking neurons receive a distributed in time sequence of spikes. Spikes are essentially boolean values, so the weights are injected (accumulated) directly into the neuron kernel. The computational complexity highly depends on the model. Here we concern the simplest Leaky Integrate and Fire model (LIF) \cite{Gerstner:SNN_models}, see equation (3). This model describes the membrane potential $ V $, which receives input $ I $ and constantly leaks toward resting potential $ E $ with the speed controlled by $ \tau $.When the threshold potential $ V_{thr} $ reached, the membrane potential is reset to $ V_{reset} $ and neuron emits an output spike. The LIF model is able to fire only a regular output spiking rate in response on a constant input, which is not enough for biological simulations, but it is fine for practical computations. In the simplest case, input $ I $ is just a pulse corresponding to a weight of an input spike, however synapse may have a more complex model, which provides input distributed in time, so called “current based synapse”.
+\begin{equation} \label{eq:3}
+\begin{split}
+&\frac{dV}{dt}=I+(V(t)-E)/\tau\\
+& if~V=V_{thr}\Rightarrow V=V_{reset}
+\end{split}
+\end{equation}
+
+In this paper, we consider ANN as a machine learning method, implementing a practical task. Training of an ANN consists of adjusting synaptic weights. It is typically a very long iterative process. The best known learning rules are error backpropagation for classical neurons \cite{Backpropagation} and spike-timing dependent plasticity (STDP) for spiking neurons \cite{STDP}. To make it clear, we do not consider the learning process in this paper.
+
+Implementation of both spiking and classical neurons is explored in both digital and analog domains. For classical neurons, the benefit of analog circuits is significant \cite{Esmaeilzadeh:Approximate,Esmaeilzadeh:Approximate_analog}, but we were unable to find any recent works with the breakdown data of individual components to include in this paper. The behavior of a spiking neuron is modeled efficiently by a few transistors working in the deep subthreshold regime \cite{Indiveri,Phong,HardwareOrAnalog,Wijekoon_compact_silicon_circuit,Energy-Efficient-Neuron}, plus it inherently supports  the continuous asynchronous simulation. Digital spiking neurons suffer from a complex model, which requires continuous recalculation even when there is no input spike. This becomes worse when the input data should be encoded by spike-rate which increases simulation time significantly. To address this issue, over-simplified models are commonly used. 
+
+Large classical ANN may be easily simulated on a limited number of time-multiplexed neurons (either digital or analog) as there is no state in classical neurons. Digital spiking neurons may be time-multiplexed, but it is costlier, as neuron state (membrane potential $ V $ in the simplest case of equation (3)) need to be saved. Analog spiking neurons, theoretically, may also be time-multiplexed, if there are no cyclic connections in a network, but, to our knowledge, this has not been explored in the literature. Thus, most of the digital hardware designs for both neuron designs exploit the time-multiplexing feature to minimise area consumption, while analog spiking hardware is typically implemented in a full parallel way.
+
+
+\section{Methods of comparison}
+To have a fair comparison, we considered two granularity levels: a) the level of individual neurons and b) the whole system level. The key assumptions to make a comparison possible are as following: (1) one input of a classical neuron is equivalent to one synaptic connection of a spiking neuron and (2) the structure of neural networks (the number of neurons and their connections) for both classical and spike neuron types are similar for the same applications.
+
+\textit{Energy per spike} is measured as a key metric for analyzing analog neurons, however this metric depends on a benchmark. For spiking neurons, most commonly, the energy consumption is recorded by applying a strong constant input, which charges the capacitor above the threshold of a neuron. This benchmark is not representative, as in practice a neuron integrates multiple input spikes, distributed in a significant time window, to produce an output spike. Thus, the total amount of input, integrated into the neuron capacitor, commonly exceeds a threshold several times, due to the leakage component. Current injection infrastructure, as digital-to-analog converter (DAC), needed to convert synaptic weighted into input current, is rarely included in a benchmark, making the estimations too optimistic. We find that the \textit{energy per synaptic event} (a single input spike coming to a single neuron) is more representative and realistic metric. It is rarely used on the level of individual neurons, but may be extracted from the full system designs.
+
+For classical neurons, power and timing characteristics are commonly available. Out of that, we estimate energy consumption per operation. In fact, we calculate the energy consumption per single input to classical neurons and compare it with a single input or output spike.
+
+For the full system comparison, in most cases, we also estimate energy consumption using power values and timing. We try to scale the energy values for a single benchmark, which is the edge detection on a small 18x18 image with 3x3 kernel size. That is the first and the main comparison metric in this paper. Edge detection is a simple CNN, consisting of a single convolutional layer of 4 directional convolutions and one max, sum or average pooling layer. Classical neurons are able to represent both positive and negative outputs, thus only 2 convolutional maps, with an absolute function, may be used. 
+
+In some cases, \cite{NeuFlow,DVS_analog,DVS_digital,CAVIAR}, it is hard to scale the reported energy values to get the first metric due to a complex benchmark used in the original works. Thus, we take the second metric, which is the number of \textit{giga-operations per second per watt} ($ GOPS/W $) for classical neurons or \textit{giga-synaptic operation per second per watt} (GSOPS/W) for spiking neurons. With the assumption (1), we may directly compare $ GOPS/W $ with $ GSOPS/W $. This metric shows the system energy efficiency level, however, it does not take into account the SNN application specific that more than one spike is used for a single operation.
+
+The largest part of the systems considered in this work are oriented towards CNN as the state of the art ANN architecture. The results, presented in Sections 4 and 5, should be taken with a grain of salt, as a simple linear scaling applied in this work is not accurate. For example, in Origami system \cite{Origami}, reported energy and $ GOPS/W $ were obtained from the configuration of 7x7 kernel size with 4 hardware neurons implementing 8 convolutional kernels in parallel. The values were scaled down x22 times to represent a convolution window of 3x3 pixels with just 2 kernels.
+
+\section{Comparison on alevel on neurons}
+Table \ref{table:1} combines the data for the classical neuron cores. Values for individual synapses (basically multiplier, adder and an insignificant fraction of an activation function) are calculated from the system level data. Energy values are not reported directly in the original published works, but we have extracted them from some other reported data (like power and timing). These extracted data are highlighted with an underline in all tables throughout the paper.
+
+In \cite{DianNao}, a neuron with 16x 16-bit inputs was implemented in a pipeline manner. Parallel multipliers in the first layer, adder tree in the second, and finally sigmoidal kernel implemented as a piecewise linear approximation with LUT. In the original paper a power of 16 neurons is reported, thus we are able to extract the energy for a single neuron, which is 0.5$ pJ $ per input. This value should be taken accurately, as the system was benchmarked with full CNN applications, most of which had a small convolutional kernel and includes pooling layers (e.g. average operation on a 2x2 kernel). Thus, the neurons were highly underutilised and consumes less power. In \cite{Temam:defect_tolerant}, a defect tolerance of hardware neurons is explored. A single layer of 10 neurons, each with 90x 16-bit inputs, is implemented. Dividing the total energy by the number of synapses, we calculate the energy consumption per synapse to be 78$ pJ $. For the last row of Table 1, we implemented a single neuron with 16-bit fixed point input and synthesized it by Cadence RTL tool with the 65$ nm $ process.
+\begin{table}[h]
+	\caption{classical digital neuron core costs and efficiency}
+	\label{table:1}
+	\centering
+	\setlength{\tabcolsep}{5pt}
+	\begin{tabular} {| c | c | c | c | c |}
+		\hline Ref. & \pbox{40pt}{Tech. node, $ nm $} & Area, $\mu m^{2} $  & Power, $ W $ & \pbox{40pt}{Energy/syn., $ pJ $} \\ 
+		\hline \cite{DianNao} & 65 & \underline{52903} & \multirow{4}{10pt}  & \underline{0.5} \\ 
+		\hline \cite{Temam:defect_tolerant} & 90 &  &  & \underline{78} \\ 
+		\hline Own exp. & 65 & 18643 & 7.2e-03 & \underline{8} \\ 
+		\hline 
+	\end{tabular}
+\end{table}
+
+Data on spiking neurons are quite fragmented. We have collected the data from different papers in Table \ref{table:2}. Most of the digital designs have been targeted field-programmable gate array (FPGA). As the power value of FPGA is only reported for the whole chip, no matter how much of it is utilised, their reports were not useful for us. A review of the large amount of models, implemented as analog circuits, has been presented in \cite{Indiveri}. Most of the models there are biologically plausible, which makes them energy and area costly. We focus on simple models, which show better area and energy results, and potential for practical applications.
+
+In \cite{Phong}, different modulation methods with current injecting into membrane capacitor are presented. The most efficient is the current modulation, which consumes 0.25$ pJ $ with 7-bit current precision. This energy value is recorded when a maximal input, higher than the threshold, is injected. The large area of the neuron is driven by the need for a large DAC to implement multiple current levels. The energy consumption in the realistic case is likely to be larger due to a clocked latch comparator, which dissipates a significant portion of the neuron power in case of continuous simulation.
+
+In \cite{HardwareOrAnalog}, both analog and digital designs are compared at 65$ nm $ process. In both cases, an input spike is injected with the time-based method as following. In the digital design, the  input is integrated into a counter based on a number of cycles, similarly, in the analog design, the number of equal current pulses is integrated into a capacitor. The analog design consumes 2$ pJ $, while digital design 41$ pJ $. That is the difference in an order of magnitude. Another result for a digital neuron is obtained from the system level values of TrueNorth architecture \cite{TrueNorth}. See the details of the architecture in Section 5. The reported energy consumption is 26$ pJ $ per synaptic event. This value, however highly depends on the network connectivity and activity.
+
+In \cite{Wijekoon_compact_silicon_circuit}, a model capable of a wide variety of biologically plausible responses is implemented as an analog circuit. A strong input voltage causing 100$ Hz $ output spike frequency results in 8.5-9$ pJ $ energy consumption per output spike at 0.35 μm process. However, no spike injection circuitry is presented in that work. In \cite{Energy-Efficient-Neuron}, a neuron together with a synapse, implementing STDP rule, were implemented at 90$ nm $ process. A neuron core was studied separately with an external voltage source, i.e. without any injection circuitry. The area for the neuron core and synapse is 442 $ \mu m^{2} $ and 4823 $ \mu m^{2} $ respectively, while each synapse in this model should be physically implemented as it contains a weight value internally in a capacitor. The resulting energy consumption of the neuron core  is just 0.4$ pJ $. The plasticity rule is activated on both input and output spikes and consumes 0.37$ pJ $ per each spike, but in this case energy dissipation for charging the neuron cell capacitor is omitted. We ignore plasticity rules in this work, but, we include it in our table due to the energy efficiency level of the neuron. In \cite{Subthreshold_Izhikevich}, a model with biologically realistic spike behavior was implemented in silicon. It occupies a significantly larger area than other models, even though the 90$ nm $ technology was utilised. The reported energy consumption per spike is 1$ pJ $, and the power consumption in the resting state is reported being 35 times less than in the spiking mode. Current injection circuitry is omitted.
+
+In \cite{DVS_analog,CAVIAR}, a chip for spiking convolution is implemented, see the details of the architecture in Section 5. There are two unique features of this implementation. The first is the presence of positive and negative spike types and two comparators to detect two thresholds. The second feature is the calibration circuits to address hardware mismatch. This requires 2930 $ \mu m^{2} $ area at 0.35$ \mu m $ technology. The energy consumption on the chip level highly depends on the convolutional kernel size. To minimize the overhead of the infrastructure (I/O pads, memory), we assume the situation with the highest available kernel size when each input spike is addressed to every neuron. The energy consumption in this case is 4$ pJ $ per synaptic event.
+\begin{table}[h]
+	\caption{spiking neuron core cost and efficiency}
+	\label{table:2}
+	\centering
+	\setlength{\tabcolsep}{5pt}
+	\begin{tabular} {|c|c|c|c|c|c|}
+		\hline Ref. &  \pbox{40pt}{Tech. node, $ nm $} & & Area, $\mu m^{2} $  & \pbox{35pt}{Energy/ spike, $ pJ $} & \pbox{30pt}{Energy/ syn., $ pJ $}\\ 
+		\hline \cite{Phong} & 65 & \multirow{6}{*}{\begin{turn}{90}Analog\end{turn}} & 5000 & 0.25 & \\
+		\cline{1-2}\cline{4-6} \cite{HardwareOrAnalog} & 65 &  & 1300 & 2 & \\
+		\cline{1-2}\cline{4-6} \cite{Wijekoon_compact_silicon_circuit} & 350 &  & 1600 & 8.5-9 & \\
+		\cline{1-2}\cline{4-6} \cite{Energy-Efficient-Neuron} & 90 &  & 442 / 4823 & 0.4 & 0.37 \\
+		\cline{1-2}\cline{4-6} \cite{Subthreshold_Izhikevich} & 90 &  & 2980 & 1 &  \\
+		\cline{1-2}\cline{4-6} \cite{CAVIAR}\cite{DVS_analog} & 350 &  & \underline{2930} & & 4 \\
+		\hline \cite{HardwareOrAnalog} & 65 & \multirow{2}{*}{\begin{turn}{90}Digi.\end{turn}} & 538 & 43 & \\	[0.25pt]
+		\cline{1-2}\cline{4-6} \cite{TrueNorth} & 28 &  &  &  & 26 \\	[0.25pt]
+		\hline
+	\end{tabular} 
+\end{table}
+
+\subsection{Discussion}
+The first thing to note from the results is that digital spiking neurons are not energy efficient compared with the analog alternative, despite having the benefit of technology scaling. Analog spiking designs, in turn, have about the same or better energy efficiency than classical neurons. However, in the majority of applications, the spike rate encoding is used, which requires to process a large spike train to extract an output. This mitigates the advantage of spiking neurons. Moreover, the values in Table 2 are optimistic due omitting injection circuits in most of the silicon spiking designs.
+
+Although values in Table 1 and 2 have a large variance and there are not enough data on classical neurons, classical digital neurons consume in a range of tens of $ pJ $ per one synapse activation while spiking neurons consume in range of single $ pJ $. That would be our initial point of view on the problem: analog spiking neurons consume about an order of magnitude lower energy per single operation (synapse / spike). 
+
+\section{Comparison of silicon neural platform}
+Table 3 has an overview of recent full system designs for both classical and spiking neurons. We focus on CNN as the state of the art ANN architecture and select the architectures, where it is possible to scale the results towards the same benchmark - the edge detection on 18x18 image with 3x3 convolution kernel and 4 directional maps. To compare the energy efficiency of systems with different neuron types, we introduce the energy column, by estimating the time required to process 18x18 image and multiplying it by reported power value or scaling the reported energy results where available. All the results calculated from values reported in the original papers are highlighted with the underline.
+\subsection{Classical neurons}
+DianNao architecture \cite{DianNao} implements an array of 16 hardware neurons with 16 synapses each. Arithmetic is implemented with 16-bit fixed-point numbers and activation function with LUT and piecewise-linear approximation. Data storage is split into three scratchpad buffers NBin for input values, SB for synaptic weights and NBout for storing partial sums and output from neurons; each buffer has its private DMA to read/write from/to the main memory. Total memory size is 44KB. Data  locality in CNN is utilized by storing input values for multiple kernels into NBin. To reduce long data transfers, dedicated registers for partial sums are placed after adder trees (e.g. partial sums occur when neurons have more than 16 synapses). The control processor drives the execution, each of the components has its own instruction. Peak energy efficiency is estimated by 931$ GOPS/W $ at 65$ nm $ technology.
+
+NeuFlow architecture \cite{NeuFlow} is based on coarse grained neural elements, implementing a bank of neuron operators. Operators are locally connected to each other as well as to the global network through a programmable switch router. When the connections and weights are programmed, data can be streamed in. The input data is streamed through DMA to off-chip memory. Resulting energy efficiency is 490$ GOPS/W $ at 45$ nm $ technology. The weak point of the implementation is that despite the architecture is addressed for vision applications and CNN in particular, only a streaming nature of the convolution is utilized, and no data localities or reuse.
+
+The alternative approach to streaming is presented at Hardware Convolutional Engine (HWCE) \cite{HWCE}. A key idea there is in input data reuse for multiple kernels and windows to reduce the number of the main memory access. Input data is gathered into the shift register, which stores K lines of an input image, where K is the width of a convolutional kernel. At each cycle, only one input pixel is added to the buffer and one discarded, forming a bandwidth of just one input and one output value. A convolutional kernel moves at one pixel per cycle and computes a single output (if application kernel size is larger than the hardware kernel, an additional penalty to offload partial sums is introduced). Shift register size is limited (e.g. to 16KB used for the benchmark), so the image is broken into overlapping pieces, to start working on each of them, shift register should fill K lines before starting computations, resulting in some performance losses. At 28$ nm $ process, the average computational efficiency is 412$ GOPS/W $ at  1$ V $ and 588$ MHz $ and reaches the maximum of 2750$ GOPS/W $ at 0.4$ V $ and 22$ MHz $ for the full platform.
+
+HWCE architecture gets a further development in Origami system \cite{Origami}. Multiple input data is reused for multiple convolutional kernels. In the same manner one input is read from external memory and one is discarded at each cycle, yet in this implementation, multiple images are loaded sequentially (8 for the benchmark). Multiple execution blocks are placed at the core (4 for the benchmark); they work at the twice larger frequency than IO part. Execution blocks are expanded with registers for partial sums to prevent data offload. The resulting peak core power efficiency is 369$ GOPS/W $ at 65$ nm $.
+\subsection{Spiking neurons}
+The accelerator for signal processing tasks is designed in \cite{12p}. Neurons in the architecture are combined into the clusters of 12 neurons and share the infrastructure for spike injection (DAC and weight memory). Applications are build in such a way that very small connectivity is used, which allows to connect clusters through a very lightweight asynchronous network of programmable switches without any arbitration. Spikes are transmitted as pulses through 1-bit lines. Spikes might be split for different bit lines to implement multicasting into different destinations or merged to reduce the number of physical lines (introducing the probability of spike loss due to collision). Input lines are allocated for specific synapses. The energy scaled from the reported value for 18x18 image is around 1e-07--3e-06$ J $ depending on execution time. The actual energy consumption highly depends on application precision, which can be controlled by simulation time (which controls a number of readout spikes).
+
+The amount of papers on a spike based systems is quite low. To complement the results, we have designed our baseline spiking neural platform and performed a simulation with the selected benchmark to extract the energy values. A model of a neuron \cite{Phong} was used due to the availability of the energy breakdown for that neuron. Neurons are gathered into a cluster of 56 and connected through a regular 2D mesh with a packet-switch dimension-order routing. Each cluster has a limited number of input “axons”. Spikes are delivered as a unicast packets through a network based on a destination address and multicasted inside the cluster based on local axon ID. The design is modeled with systemC (based on Noxim NoC simulator \cite{NOXIM}) and its energy consumption is calculated based on traffic (with the help of Orion tool \cite{Orion}) and an amount of memory accesses inside the clusters (base components are synthesized with Cadence RTL tool to estimate the energy cost).
+
+Studies on mammalian retina gave a birth to Dynamic Vision Sensors (DVS), which mimic biological properties of producing continuous event-based input rather than frame-based as in conventional cameras. Such a retinamorphic sensors provide a spiking input that can be used for processing in the same way as a frame based input. In \cite{DVS_analog,CAVIAR} a convolutional chip of 32x32 neurons was developed for that. The chip energy efficiency is 45-220 mega spiking events per second per Watt, depending on the convolutional kernel size. According to the assumption (1), one input spike may be considered as an equivalent of $ K $ MAC operations for classical neurons, where $ K $ is kernel size, i.e. for 1.4-225$ GOPS/W $ at 0.35$ \mu m $. A similar digital design \cite{DVS_digital}, with silicon neurons changed to digital, has lower efficiency 2.6--7.53$ GOPS/W $ with the same kernel sizes.
+\begin{table}[h]
+	\caption{full system comparison}
+	\label{table:3}
+	\centering
+	\setlength{\tabcolsep}{5pt}
+	\begin{tabular} {|c|c|c|c|c|c|}
+		\hline Ref. &  \pbox{40pt}{Tech. node, $ nm $} & & & \pbox{40pt}{Benchmark energy, $ J $} & GOPS/W \\ 
+		\hline \cite{DianNao} & 65 & \multirow{4}{*}{\begin{turn}{90}Classical\end{turn}} & \multirow{4}{*}{\begin{turn}{90}Digital\end{turn}} & \underline{1e-08} & 931 \\
+		\cline{1-2}\cline{5-6} \cite{HWCE} & 28 &  &  & \underline{1e-08} & 412 \\
+		\cline{1-2}\cline{5-6} \cite{NeuFlow} & 45 &  &  &  & 230 \\
+		\cline{1-2}\cline{5-6} \cite{Origami} & 65 &  &  & \underline{2e-08} & 369 \\
+		\hline \cite{12p} & 65 & \multirow{5}{*}{\begin{turn}{90}Spiking\end{turn}} & \multirow{3}{*}{\begin{turn}{90}Analog\end{turn}} & 1e-07 -- 3e-06 &  \\
+		\cline{1-2}\cline{5-6} Our exp. & 65 &  &  & 1e-07 -- 5e-06 &  \\
+		\cline{1-2}\cline{5-6} \cite{CAVIAR}\cite{DVS_analog} & 350 &  &  &  & \underline{1.4--225} \\	
+		\cline{1-2}\cline{4-6} \cite{DVS_digital} & 350 &  & \multirow{2}{*}{\begin{turn}{90}Digi.\end{turn}} &  & \underline{2.6-7.5} \\
+		\cline{1-2}\cline{5-6} \cite{TrueNorth} & 28 &  &  & \underline{5e-06} & 46-400 \\				
+		\hline
+	\end{tabular} 
+\end{table}
+
+\subsection{Discussion}
+From the Table 3, we may see that the energy consumption on the selected benchmark for systems based on non-spiking neurons is on the level of tens of nanojoules. The energy for spike-based systems is higher for 1-2 orders of magnitude, despite the spiking neurons have an efficiency advantage from the level of individual neurons, see Section 4. That is easily explained by the use of spike-rate encoding - to encode 8-bit number a large spike sequence is required. Together with that, an infrastructure energy costs, such as injection circuits, weight storage and interconnection network play the dominant role. In our experiment, described in Section 5.2, the infrastructure impact on the energy per spike adds almost two orders of magnitude of energy consumption from 0.25$ pJ $ in [6] to 13$ pJ $ in our experiment. The results of \cite{12p}, where the interconnection network is simplified almost to a level of direct connections, 98\% of total energy is consumed in memory. In classical systems, infrastructure consumes the most energy although the impact of the neuron itself is significant too, such, in DianNao architecture \cite{DianNao}, processing block consumes about 27\% of total energy.
+
+It is hard to extract energy value for neuromorphic systems \cite{DVS_analog,CAVIAR,DVS_digital}, that is why for them we use the second available metric - $ GOPS/W $. In the Caviar system’s convolutional chip \cite{DVS_analog,CAVIAR}, kernel size may vary in the range up to 32x32. The higher value of 225 $ GOPS/W $ corresponds to a large kernel size when the infrastructure energy consumption (I/O, memory) is amortised by a large amount of synaptic operations. We consider this high value for comparison as it represents a system optimised for a specific application, similar to classical neural systems in Table 3 optimised for CNN. Digital chip \cite{DVS_digital} shows the much worse energy efficiency of 7.5$ GOPS/W $, which only slightly depends on kernel size. This shows that the energy consumption of digital neuron simulation is comparable to infrastructure energy although it utilises an old technology. The TrueNorth architecture \cite{TrueNorth} also reports up to 400 GOPS/W for a high-connection network. Classical neural systems report an energy efficiency from 230 to 930$ GOPS/W $, which is achieved by high data reuse and data transfer minimisation as a sequence. These values show that spiking systems are on a similar level of energy efficiency.
+
+The main conclusion is that the hardware efficiency of neuromorphic platforms is about the same as for classical neuron systems, in terms of single operations. However, the single operator (spike) is typically not enough to represent data, as spike-frequency encoding is commonly used, resulting in significantly higher energy consumption. Thus, a primary milestone to enable neuromorphic computing for applied tasks would be the development of applications implementation with alternative (time-based) data encoding requiring less number of spikes. That would allow breaking the distance between spiking and classical systems. Such techniques are known for quite a long time \cite{Thorpe:encodings}, but they are rarely utilised.
+
+From another side, even if we assume that spiking application with single spike data encoding would be developed, resulting in a similar energy consumption of spiking and classical ANN, the area consumption of classical systems is much lower due to time-multiplexing designs, whereas spiking systems have to be implemented in parallel. Despite the size of a silicon spiking neuron is measured in hundreds of square micrometers, millions of neurons are required to perform, for example, an image recognition on a suitable resolution. Thus, we do not expect spiking neural systems to be able to compete with classical in computational applications.
+
+\section{Memristor crossbar based systems}
+The emergence of resistive memory cells opens up a new horizon in energy efficiency for ANN. Memristors, combined in a crossbar fashion - memristor crossbar (MC), replace SRAM memory for weight storage and implement a vector-matrix multiplication of input voltages to memristor conductances. That is beneficial for spiking neurons, where SRAM access energy is dominant (98\% in \cite{12p}), and for classical neurons, where both memory and synaptic multiplications are important (66\% in \cite{DianNao} Together with energy, MC is highly dense and scalable, which is important for densely connected ANN, where synapses occupy a huge area in VLSI circuits.
+
+Sneak paths are a problem with a pure MC, as current may go through any path of it, even though we want to access a specific cell. Classical ANN allows mitigating this, as all the inputs are injected simultaneously during the read operation \cite{Memristor_approximated,RRAM_approximated}. SNN do not have this feature and thus need some workaround to address the problem of sneak paths, as well as memristor programming requires an access to individual elements. Some works utilise 1T1M (one transistor per memristor) methodology, which is used to access individual memristors and remove the sneak path problem \cite{Spiking_resistive_crossbar,STT_SNN,ex_situ}. Another method of mitigating sneak paths during write operation is to apply half of programming voltage to all the rows and columns except of a selected one, which receives a whole programming voltage on its row and zero voltage on its column \cite{RRAM_approximated,Segmented_memristor}.
+
+A property of memristors to tune resistance gradually, when small programming pulses are applied, is very well popular in neuromorphic community. It allows emulating STDP learning rule right in the neurons without much extra circuitry. In this paper, we consider only a forward path of ANN, assuming that ANN is pre-trained offline. This is an ideal scenario, yet it is quite realistic, for example in sensor nodes ANN should  execute a pre-processing function on input data. Thus we have not considered  those works using learning rules such as back propagation for classical and STDP for spiking neurons.
+
+\subsection{Classical neurons}
+MC, implementing classical ANN, makes an idea of neural approximated computing very attractive (when a tightly coupled neural accelerator approximates parts of an application, see \cite{Esmaeilzadeh:Approximate,Esmaeilzadeh:Approximate_analog}). This idea is explored in \cite{Memristor_approximated,RRAM_approximated}, where a group of memristive neurons implement two layered ANN serving as universal approximator provides up to 568$ GOPS/W $ energy efficiency. In this case, one approximated operation (CPU instruction) is used as a metric, rather than one synaptic MAC operation in Table 4. In \cite{Memristor_approximated}, 270x energy efficiency improvement over Intel Xeon processor and 12x improvement over FPGA for calculating Gaussian distance (part of HMAX benchmark) are reported.
+
+Together with MC, spin-transfer-torque (STT) neuron was used in \cite{STT_SNN}. STT neuron is based on magnetic tunnel junction effect, its resistance is controlled by a domain wall formed in a thin “free” magnet trapped between two anti-polarised magnets. Synaptic current coming from MC programs magnetic junction resistance by pushing a domain wall from the initial reset position. Neuron energy consumption per one operation is 3.75$ fJ $. Out of system level energy consumption for a letter recognition benchmark, we extracted 1.4$ fJ $ energy consumption per synaptic activation. We may see that neuron energy is on the same level as synapse, and, thus, it is also important if a target application focus small ANN, like function approximation.
+
+In \cite{Segmented_memristor}, the problem of sneak paths is addressed by segmenting MC. The reported energy consumption to read one memristor from an unconstrained MC of 1024x1024 size is 21$ fJ $ (and 100$ pJ $ for a write operation). With the proposed method of breaking MC into small segments of 4x4 memristors, energy values are reduced to 1.84$ fJ $ per read and 1.9$ pJ $ per write.
+
+\subsection{Spiking neurons}
+In \cite{Spiking_resistive_crossbar}, the crossbar of memristors, storing synaptic weights, produces a parallel current input to neurons when an input pulse is set in an input line. The resulting energy consumption, calculated from the values reported in charts, is 12$ fJ $ per synaptic event or 0.5$ pJ $ per spike, in case of the classification benchmark. In \cite{Can_we_use_SNN_RRAM}, four-layer SNN is implemented in hard connected MCs. The data on the amount of spikes is available only for the first layer. Even if we take this number as a total amount of spikes, which is an under-approximation, and divide the energy consumption, extracted from power and timing values, by it, we get a very low value of  0.5$ fJ $ per synapse. 
+
+Another paper compares digital implementation based on the conventional CMOS on the projected 10$ nm $ technology with analog implementation based on MC \cite{Rajendran:specification_of_nanosscale}. Authors focus on STDP learning rule implementation, but they give the energy breakdown, which allows estimating only the forward path of ANN. The energy to read 4-bit value from a MC equals 41$ fJ $, whereas energy for SRAM access equals 34$ fJ $. Write operation, which is necessary together with each synapse activation in STDP rule is much more energy costly for memristors, thus, authors conclude that digital spiking system implementing STDP rule is more energy efficient. It should be noted that other papers report lower energy per MC access.
+\begin{table}[h]
+	\caption{memristor crossbar based architectures}
+	\label{table:4}
+	\centering
+	\setlength{\tabcolsep}{5pt}
+	\setlength\extrarowheight{1pt}
+	\begin{tabular} {|c|c|c|c|}
+		\hline Ref. &  \pbox{40pt}{Tech. node, $ nm $} & & \pbox{40pt}{Energy/syn., $ pJ $}\\ 
+		\hline \cite{STT_SNN} & 45 & \multirow{2}{*}{\begin{turn}{90}Class.\end{turn}} & \underline{1.4} \\
+		\cline{1-2}\cline{4-4} \cite{Segmented_memristor} & 45 &  & 1.8--21 \\
+		\hline \cite{Can_we_use_SNN_RRAM} &  & \multirow{3}{*}{\begin{turn}{90}Spiking\end{turn}} & \underline{0.5} \\
+		\cline{1-2}\cline{4-4} \cite{Spiking_resistive_crossbar} & 130 &  & \underline{12} \\
+		\cline{1-2}\cline{4-4} \cite{Rajendran:specification_of_nanosscale} & 10 &  & 41 \\
+		\hline
+	\end{tabular} 
+\end{table}
+\subsection{Discussion}
+Emerging resistive memory technology benefits both type of neurons. MC makes memristor access as the basic synaptic operation. This should results in the energy consumption of a few $ fJ $ for both neuron types, as shown in Table 4. Although, on this early stage of memristive technologies, the variance in the reported data is very high. With such a low value for synapses, the total system energy consumption would be dominated by other parameters such as data transmission, ADC/DAC (if we assume that communication, especially in large-scale systems is digital). Spike based systems may have some benefits in that. First, as a spike is an event, a minimal network payload is generated, whereas classical neurons exchange N-bit values. Second, data input to MC requires just a single input voltage level, while classical neurons would require multiple voltage levels and more complex DAC, as well as ADC, to read an output. Such, in \cite{Merging_Interface} ADC/DAC is estimated to consume more than 85\% of total power and area for 8-bit accuracy. Authors propose to expand MC and use separate rows and columns for each input and output bit, which saves, by their estimations, 60--85\% of total power and 50--85\% of total area (as MC is very compact). Although another work \cite{STT_SNN} reports less than 25\% of total energy consumption for current source. Third, there are some potential applications (like DVS based surveillance), where input is essentially spiking and don’t need a conversion into spikes. DVS, also, typically require a small amount of spikes to represent the data. For example, in \cite{DVS_analog}, sensor registering the silhouettes of two walking people on 128x128 resolution produce 980 spikes at 40 ms, a normal 25 fps camera would produce 16384 input pixels. Thus the amount of data to process is lower for an order of magnitude for DVS. Together with spike-time based processing it would give an order of magnitude of energy efficiency.
+
+\section{Conclusion}
+With currently available technologies, spiking neuromorphic systems lose classical non-spiking systems on every position (accuracy, area, energy, speed). There is an essential disadvantage in spike-rate encoding, which requires multiple spikes to be processed. Having applications with single-spike data representation may bring spike based systems in-line with classical in the energy efficiency. Memristive memory technology gives a huge benefit for both neuron types, replacing the synaptic circuits. With that, synapse and neuron access become an insignificant part of the system energy consumption. Architecturally, classical ANN accelerators would become very similar to spiking designs. With the similar energy consumption in the synapses for both neuron types, other parameters would become the energy bottleneck. We expect that spiking neurons may have some benefits on a system level, which could bring better energy results. Although there is still the need to mitigate an application level inefficiency of spike-data encoding for SNN.
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,SpikingVsSigmoid}{}
+
+
+
+% that's all folks
+\end{document}
+
+
