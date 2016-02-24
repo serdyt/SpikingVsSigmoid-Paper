@@ -1,6 +1,5 @@
 \documentclass[conference, compsoc]{IEEEtran}
 
-
 \usepackage{cite}
 
 
@@ -24,7 +23,7 @@
 \IEEEauthorblockA{University of Turku\\
 	Finland}
 \and
-\IEEEauthorblockN{ Masoud Daneshtalab}
+\IEEEauthorblockN{Masoud Daneshtalab}
 \IEEEauthorblockA{Royal Institute of Technology\\
 	Sweden}
 }
@@ -96,7 +95,7 @@ In \cite{DianNao}, a neuron with 16x 16-bit inputs was implemented in a pipeline
 	\centering
 	\setlength{\tabcolsep}{5pt}
 	\begin{tabular} {| c | c | c | c | c |}
-		\hline Ref. & \pbox{40pt}{Tech. node, $ nm $} & Area, $\mu m^{2} $  & Power, $ W $ & \pbox{40pt}{Energy/syn., $ pJ $} \\ 
+		\hline Ref. & \pbox[t]{40pt}{Tech. node,\\ $ nm $} & Area, $ \mu m^{2} $  & Power, $ W $ & \pbox[t]{45pt}{Energy$ / $syn.,\\ $ pJ $} \\ 
 		\hline \cite{DianNao} & 65 & \underline{52903} & \multirow{4}{10pt}  & \underline{0.5} \\ 
 		\hline \cite{Temam:defect_tolerant} & 90 &  &  & \underline{78} \\ 
 		\hline Our exp. & 65 & 18643 & 7.2e-03 & \underline{8} \\ 
@@ -119,7 +118,7 @@ In \cite{DVS_analog,CAVIAR}, a chip for spiking convolution is implemented, see 
 	\centering
 	\setlength{\tabcolsep}{5pt}
 	\begin{tabular} {|c|c|c|c|c|c|}
-		\hline Ref. &  \pbox{40pt}{Tech. node, $ nm $} & & Area, $\mu m^{2} $  & \pbox{35pt}{Energy/ spike, $ pJ $} & \pbox{30pt}{Energy/ syn., $ pJ $}\\ 
+		\hline Ref. &  \pbox[t]{40pt}{Tech. node,\\ $ nm $} & & Area, $ \mu m^{2} $  & \pbox[t]{35pt}{Energy/\\spike, $ pJ $} & \pbox[t]{30pt}{Energy/\\syn., $ pJ $}\\ 
 		\hline \cite{Phong} & 65 & \multirow{6}{*}{\begin{turn}{90}Analog\end{turn}} & 5000 & 0.25 & \\
 		\cline{1-2}\cline{4-6} \cite{HardwareOrAnalog} & 65 &  & 1300 & 2 & \\
 		\cline{1-2}\cline{4-6} \cite{Wijekoon_compact_silicon_circuit} & 350 &  & 1600 & 8.5-9 & \\
@@ -148,7 +147,7 @@ Due to limited available materials in hardware realization of spike-based system
 	\centering
 	\setlength{\tabcolsep}{5pt}
 	\begin{tabular} {|c|c|c|c|c|c|}
-		\hline Ref. &  \pbox{40pt}{Tech. node, $ nm $} & & & \pbox{40pt}{Benchmark energy, $ J $} & GOPS/W \\ 
+		\hline Ref. &  \pbox[t]{40pt}{Tech. node,\\ $ nm $} & & & \pbox[t]{40pt}{Benchmark\\energy, $ J $} & GOPS/W \\ 
 		\hline \cite{DianNao} & 65 & \multirow{4}{*}{\begin{turn}{90}Classical\end{turn}} & \multirow{4}{*}{\begin{turn}{90}Digital\end{turn}} & \underline{1e-08} & 931 \\
 		\cline{1-2}\cline{5-6} \cite{HWCE} & 28 &  &  & \underline{1e-08} & 412 \\
 		\cline{1-2}\cline{5-6} \cite{NeuFlow} & 45 &  &  &  & 230 \\
@@ -186,7 +185,7 @@ MC, implementing classical ANN, makes an idea of neural approximated computing v
 	\setlength{\tabcolsep}{5pt}
 	\setlength\extrarowheight{1pt}
 	\begin{tabular} {|c|c|c|c|}
-		\hline Ref. &  \pbox{40pt}{Tech. node, $ nm $} & & \pbox{40pt}{Energy/syn., $ pJ $}\\ 
+		\hline Ref. &  \pbox[t]{40pt}{Tech. node,\\ $ nm $} & & \pbox[t]{45pt}{Energy$ / $syn.,\\ $ pJ $}\\ 
 		\hline \cite{STT_SNN} & 45 & \multirow{2}{*}{\begin{turn}{90}Class.\end{turn}} & \underline{1.4} \\
 		\cline{1-2}\cline{4-4} \cite{Segmented_memristor} & 45 &  & 1.8--21 \\
 		\hline \cite{Can_we_use_SNN_RRAM} &  & \multirow{3}{*}{\begin{turn}{90}Spiking\end{turn}} & \underline{0.5} \\
